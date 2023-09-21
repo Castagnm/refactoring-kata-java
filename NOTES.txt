@@ -10,3 +10,9 @@ Ideally, we could test it with POSTMAN. It might be a bit too much, especially c
 1st step : *understand the test*. Add comments to explain the business logic. Read through. Test. Confirm expected behavior.
 2nd step : if it works, at first clean up the code. Rename variables. break down methods. Create classes. Keep it to simple corrections. See if some simple tests can be added.
 3rd step : once the code is readable, it can be more easily optimized - with specific methods, tools, algorithms...
+
+writing tests immediatly might sound tempting, but it is still a bit hard to understand the general business logic - I prefer to clean up at first what's rather simple to do.
+Body and Item are data structures and thus added to a data folder.
+Their setters are also removed and their attributes fixed to final : the method of shoppingcontroller only read this data.
+
+the logger will be removed for now. We can always add it afterwards, once the code is easier to understand, so that we may log business or technical information.
