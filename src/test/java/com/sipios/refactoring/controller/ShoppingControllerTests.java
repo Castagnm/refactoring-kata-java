@@ -10,6 +10,9 @@ class ShoppingControllerTests extends UnitTest {
     @InjectMocks
     private ShoppingController controller;
 
+    // this initial test is a good template to check the different scenarios.
+    // we can use them to verify some simple scenarios and confirm we haven't broken anything.
+    // With time we could write more complex tests but that might go over the time limit...
     @Test
     void should_not_throw() {
         Assertions.assertDoesNotThrow(

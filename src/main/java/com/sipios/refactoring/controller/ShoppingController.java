@@ -12,13 +12,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+// This controller seem to provide an interface, with a post endpoint, to calculate the content of a customer's cart.
+// The cart can contains different type of items.
+// The method associated to the endpoint will go through the user's cart, calculate the price, and return it.
+// It also controls if the cart reaches the limit price for the customer (a standard customer can only buy up to 200, and so on...)
+
+
 @RestController
 @RequestMapping("/shopping")
 public class ShoppingController {
 
+    // a logger is a good idea, but it doesn't seem to be used here.
+    // two strategies : one, remove it and add it later.
+    // two, correctly implement it where necessary.
     private Logger logger = LoggerFactory.getLogger(ShoppingController.class);
 
     @PostMapping
+    //TODO This method does too many things. It needs to be broken down into separate methods, each fulfilling a specific purpose.
     public String getPrice(@RequestBody Body b) {
         double p = 0;
         double d;
@@ -28,6 +38,7 @@ public class ShoppingController {
         cal.setTime(date);
 
         // Compute discount for customer
+        //TODO these types could be summed up with an enum class. 
         if (b.getType().equals("STANDARD_CUSTOMER")) {
             d = 1;
         } else if (b.getType().equals("PREMIUM_CUSTOMER")) {
@@ -40,6 +51,7 @@ public class ShoppingController {
 
         // Compute total amount depending on the types and quantity of product and
         // if we are in winter or summer discounts periods
+        //TODO we should review the calculation of date. It looks a lot like duplication here !
         if (
             !(
                 cal.get(Calendar.DAY_OF_MONTH) < 15 &&
@@ -59,6 +71,8 @@ public class ShoppingController {
             for (int i = 0; i < b.getItems().length; i++) {
                 Item it = b.getItems()[i];
 
+                //TODO duplication code. Also, what happens if the item is of a different type than those proposed below ? There's no control !
+                //TODO we might want to add exceptions.
                 if (it.getType().equals("TSHIRT")) {
                     p += 30 * it.getNb() * d;
                 } else if (it.getType().equals("DRESS")) {
@@ -117,6 +131,9 @@ public class ShoppingController {
     }
 }
 
+//TODO this appear to be the request body, but it's too vague to be understandable. (name a bit misleading to be honest).
+//TODO Each body will contain a customer type (family is a potential name)
+//TODO can it be altered by the post method ? If not, it might be better to make sure the attributes cannot be changed.
 class Body {
 
     private Item[] items;
@@ -146,6 +163,8 @@ class Body {
     }
 }
 
+//TODO this class seems to specify the items present in the cart. Each item can have a type and a quantity.
+//TODO It should belong to a class of its own. Also, can the values be altered ?
 class Item {
 
     private String type;

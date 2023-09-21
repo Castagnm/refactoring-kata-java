@@ -1,0 +1,12 @@
+started at around 2:45 pm.
+Expected end : 4:15 pm.
+
+Goal : refactor the ShoppingController class.
+
+Initial observations : 
+environment is maven, spring, springboot. The ShoppingController, once started, exposes a POST route.
+Ideally, we could test it with POSTMAN. It might be a bit too much, especially considering a test is already in place.
+
+1st step : *understand the test*. Add comments to explain the business logic. Read through. Test. Confirm expected behavior.
+2nd step : if it works, at first clean up the code. Rename variables. break down methods. Create classes. Keep it to simple corrections. See if some simple tests can be added.
+3rd step : once the code is readable, it can be more easily optimized - with specific methods, tools, algorithms...
