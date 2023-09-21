@@ -3,8 +3,6 @@ package com.sipios.refactoring.controller;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sipios.refactoring.data.Body;
 import com.sipios.refactoring.data.Item;
+import com.sipios.refactoring.exception.PriceTooHighException;
 
 // This controller seem to provide an interface, with a post endpoint, to calculate the content of a customer's cart.
 // The cart can contains different type of items.
@@ -25,38 +24,62 @@ import com.sipios.refactoring.data.Item;
 @RequestMapping("/shopping")
 public class ShoppingController {
 
-    @PostMapping
-    //TODO This method does too many things. It needs to be broken down into separate methods, each fulfilling a specific purpose.
-    public String getPrice(@RequestBody Body body) {
-        double price = 0;
+    private static final String TIMEZONE = "Europe/Paris";
 
-        Date date = new Date();
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
-        cal.setTime(date);
+    @PostMapping
+    public String getPrice(@RequestBody Body body) {
+
+        Item[] cart = body.getItems();
+
+        // an empty cart has no price.
+        if (cart == null) {
+            return "0";
+        }
 
         double customerCoefficient = getCustomerCoefficient(body.getCustomerType());
 
+        boolean isDiscountPeriod = isDiscountPeriod();
+
         // Compute total amount depending on the types and quantity of product and
         // if we are in winter or summer discounts periods
-        //TODO we should review the calculation of date. It looks a lot like duplication here !
-        if (
-            !(
-                cal.get(Calendar.DAY_OF_MONTH) < 15 &&
-                cal.get(Calendar.DAY_OF_MONTH) > 5 &&
-                cal.get(Calendar.MONTH) == 5
-            ) &&
-            !(
-                cal.get(Calendar.DAY_OF_MONTH) < 15 &&
-                cal.get(Calendar.DAY_OF_MONTH) > 5 &&
-                cal.get(Calendar.MONTH) == 0
-            )
-        ) {
-            if (body.getItems() == null) {
-                return "0";
-            }
+        double price = calculateCartPrice(cart, customerCoefficient, isDiscountPeriod);
 
-            for (int i = 0; i < body.getItems().length; i++) {
-                Item it = body.getItems()[i];
+        verifyPriceLimit(price, body.getCustomerType());
+
+        return String.valueOf(price);
+    }
+
+    // are we in summer / winter discount periods ?
+    //TODO this method is more of business logic and could be isolated in a DiscountService.
+    private boolean isDiscountPeriod() {
+
+        final int JANUARY = 0;
+        final int MAY = 5;
+        
+        Date date = new Date();
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(TIMEZONE));
+        cal.setTime(date);
+
+        return !isDiscountPeriodForMonth(cal, MAY) && !isDiscountPeriodForMonth(cal, JANUARY);
+    }
+
+    //TODO this method is more of business logic and could be isolated in a DiscountService.
+    private boolean isDiscountPeriodForMonth(Calendar cal, int monthIndex) {
+        return cal.get(Calendar.DAY_OF_MONTH) < 15 &&
+        cal.get(Calendar.DAY_OF_MONTH) > 5 &&
+        cal.get(Calendar.MONTH) == monthIndex;
+    }
+
+    //TODO this method is still too complicated and should be isolated in a PriceService class.
+    private double calculateCartPrice(Item[] cart, double customerCoefficient, boolean isDiscountPeriod) {
+
+        double price = 0;
+
+        //TODO build a hashmap associating base prices and item types.
+        if (isDiscountPeriod) {
+
+            for (int i = 0; i < cart.length; i++) {
+                Item it = cart[i];
 
                 //TODO duplication code. Also, what happens if the item is of a different type than those proposed below ? There's no control !
                 //TODO we might want to add exceptions.
@@ -69,12 +92,9 @@ public class ShoppingController {
                 }
             }
         } else {
-            if (body.getItems() == null) {
-                return "0";
-            }
 
-            for (int i = 0; i < body.getItems().length; i++) {
-                Item it = body.getItems()[i];
+            for (int i = 0; i < cart.length; i++) {
+                Item it = cart[i];
 
                 if (it.getType().equals("TSHIRT")) {
                     price += 30 * it.getNb() * customerCoefficient;
@@ -86,9 +106,7 @@ public class ShoppingController {
             }
         }
 
-        verifyPriceLimit(price, body.getCustomerType());
-
-        return String.valueOf(price);
+        return price;
     }
 
     private double getCustomerCoefficient(String customerType) {
@@ -103,25 +121,22 @@ public class ShoppingController {
         }
     }
 
+    //TODO specific exceptions have been defined, but the test might be simplified
+    //TODO (for example, in a PriceService class that throws an exception as soon as the limit is hit rather than after the full price is calculated).
     private void verifyPriceLimit(double price, String customerType) {
 
         try {
-            if (customerType.equals("STANDARD_CUSTOMER")) {
-                if (price > 200) {
-                    throw new Exception("Price (" + price + ") is too high for standard customer");
+            if (customerType.equals("STANDARD_CUSTOMER") && price > 200) {
+                    throw new PriceTooHighException(price, "standard");
+                } 
+            else if (customerType.equals("PREMIUM_CUSTOMER") && price > 800) {
+                    throw new PriceTooHighException(price, "premium");
                 }
-            } else if (customerType.equals("PREMIUM_CUSTOMER")) {
-                if (price > 800) {
-                    throw new Exception("Price (" + price + ") is too high for premium customer");
+            else if (customerType.equals("PLATINUM_CUSTOMER") && price > 2000) {
+                    throw new PriceTooHighException(price, "platinum");
                 }
-            } else if (customerType.equals("PLATINUM_CUSTOMER")) {
-                if (price > 2000) {
-                    throw new Exception("Price (" + price + ") is too high for platinum customer");
-                }
-            } else {
-                if (price > 200) {
-                    throw new Exception("Price (" + price + ") is too high for standard customer");
-                }
+            else if (price > 200) {
+                    throw new PriceTooHighException(price, "standard");
             }
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

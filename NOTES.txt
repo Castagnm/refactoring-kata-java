@@ -16,3 +16,20 @@ Body and Item are data structures and thus added to a data folder.
 Their setters are also removed and their attributes fixed to final : the method of shoppingcontroller only read this data.
 
 the logger will be removed for now. We can always add it afterwards, once the code is easier to understand, so that we may log business or technical information.
+
+_____________
+
+I won't go further for now in refactoring as the time limit is approaching. Rather I prefer to review what has been done so far and future leads for a proper refactoring.
+
+So far, the purpose of the method is clearer : the main method getPrice is simplified enough that a quick skip allows the developer to understand the general purpose of the class.
+The data structures have also been defined separatly and the test is running correctly.
+
+What next ?
+
+The biggest issue is that the business logic is still present inside the controller. Furthermore the different calculation methods could still gain in visibility.
+The main work to be done would be to separate business logic and controller mechanism by creating an interface and service such as PriceService. This new class could incorporate the pure business logic.
+
+Once the price calculation and discount calculation have been properly isolated, we can also define complementary data, as the coefficients used to calculate the cart price can be saved separatly as well (perhaps even in a database ?)
+this would allow to avoid the many if without using a switch/case.
+
+To write the service, I would first write the tests : thanks to the initial code clearing, the logic is now easier to read - making the tests themselves more natural to build.
